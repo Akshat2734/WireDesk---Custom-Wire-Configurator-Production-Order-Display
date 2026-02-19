@@ -5,13 +5,15 @@ from PyQt6.QtWidgets import (
     QWidget, QLabel, QVBoxLayout,
     QPushButton, QScrollArea, QLineEdit, QComboBox, QHBoxLayout, QMessageBox
 )
-from PyQt6.QtCore import Qt, QEvent
+from PyQt6.QtCore import Qt, QEvent, pyqtSignal
 
 from json_form import JsonForm
 from calculation_engine import CalculationEngine
 from accordion import Accordion, AccordionSection
 
 class Overlay(QWidget):
+    
+    order_added = pyqtSignal()
     
     COMPLIANCE_FIELDS = {
     "insulation_meets_standard",
@@ -231,7 +233,7 @@ class Overlay(QWidget):
         print(order_display)
         
         Overlay.save_both_dbs(data_analysis, order_display)
-        
+        self.order_added.emit()
         QMessageBox.information(
             self,
                 "Success",
@@ -268,9 +270,10 @@ class Overlay(QWidget):
                 weight_per_meter_kg,
                 cost_per_meter,
                 total_cost,
-                length_meters
+                length_meters,
+                status
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 order_id,
                 analytics.get("wire_type"),
@@ -287,7 +290,8 @@ class Overlay(QWidget):
                 analytics.get("weight_per_meter_kg"),
                 analytics.get("cost_per_meter"),
                 analytics.get("total_cost"),
-                analytics.get("length_meters")
+                analytics.get("length_meters"),
+                "preprocessing"
             ))
 
 

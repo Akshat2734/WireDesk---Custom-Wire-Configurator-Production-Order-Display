@@ -9,6 +9,8 @@ import qdarkstyle
 
 from card_widget import Card
 from overlay import Overlay
+from ordersdashboard import OrdersDashboard
+from dashboard_window import DashboardWindow
 
 cards_data = [
     {
@@ -67,19 +69,42 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self.setWindowTitle("WireDesk - Custom Wire Configurator & Production Order Display")
-        self.setMinimumSize(1000, 700)
+        self.setMinimumSize(1200, 700)
         
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
 
         self.overlay = Overlay(self)
         self.overlay.hide()
+        
+        self.dashboard = OrdersDashboard()
+        # When order saved → refresh dashboard automatically
+        self.overlay.order_added.connect(self.dashboard.refresh)
 
         # ---------- Top Bar ----------
         top = QWidget()
         top_layout = QHBoxLayout(top)
         top_layout.addWidget(QLabel("WireDesk - Custom Wire Configurator & Production Order Display"))
         top_layout.addStretch()
-        top_layout.addWidget(QLabel("Dashboard"))
+        self.dashboard_window = DashboardWindow()
+
+        self.dashboard_window = DashboardWindow()
+
+        dashboard_btn = QLabel("Dashboard")
+
+        dashboard_btn.setStyleSheet("""
+            QLabel {
+                color:white;
+                font-weight:bold;
+            }
+
+            QLabel:hover {
+                color:#4da3ff;
+            }
+        """)
+
+        dashboard_btn.mousePressEvent = self.open_dashboard
+
+        top_layout.addWidget(dashboard_btn)
         top_layout.addWidget(QLabel("Add"))
         top.setFixedHeight(50)
         top.setStyleSheet("background:#444;color:white;padding:10px;")
@@ -87,7 +112,7 @@ class MainWindow(QMainWindow):
         # ----- Right Bar ----- 
         rightBar = QWidget() 
         rightLayout = QVBoxLayout(rightBar) 
-        rightLayout.addWidget(QLabel("Hello World")) 
+        rightLayout.addWidget(self.dashboard) 
         rightLayout.addStretch() 
         rightBar.setStyleSheet("background:#2e2e2e; color:white;")
 
@@ -143,6 +168,12 @@ class MainWindow(QMainWindow):
         center = QGuiApplication.primaryScreen().geometry().center()
         self.move(center - self.rect().center())
         super().resizeEvent(event)
+        
+    def open_dashboard(self, event):
+
+        self.dashboard_window.show()
+
+        self.dashboard_window.raise_()
 
 
 app = QApplication(sys.argv)
