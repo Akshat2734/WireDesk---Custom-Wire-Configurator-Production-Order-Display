@@ -11,8 +11,6 @@ from json_form import JsonForm
 from calculation_engine import CalculationEngine
 from accordion import Accordion, AccordionSection
 
-
-
 class Overlay(QWidget):
     
     COMPLIANCE_FIELDS = {
@@ -183,18 +181,23 @@ class Overlay(QWidget):
                 "These checks failed:\n\n" + "\n".join(failed)
             )
             return
-        else:
-            QMessageBox.warning(
-                self,
-                "Success"
-            )
+        
         # for streamlit and right dashboard
         data_analysis = {
+            #"order_id",
             "wire_type": root.get("wire_type"),
+            "table_ref": root.get("table_ref"),
+            "conductor_class": root.get("conductor_class"),
             "variant": root.get("variant"),
             "material": root.get("material"),
             "conductor_weight_kg": root.get("conductor_weight_kg"),
+            "aluminium_weight_kg": root.get("aluminium_weight_kg"),
+            "copper_rate_per_kg": root.get("copper_rate_per_kg"),
+            "metal_rate_per_kg": root.get("metal_rate_per_kg"),
+            "pvc_rate_per_kg": root.get("pvc_rate_per_kg"),
             "pvc_weight_kg": root.get("pvc_weight_kg"),
+            "weight_per_meter_kg": root.get("weight_per_meter_kg"),
+            "cost_per_meter": root.get("cost_per_meter"),
             "total_cost": root.get("total_cost"),
             "length_meters": root.get("length_meters")
         }
@@ -209,6 +212,14 @@ class Overlay(QWidget):
             "nominal_sheath_ts_mm": root.get("nominal_sheath_ts_mm"),
             "max_width_mm": root.get("max_width_mm"),
             "max_height_mm": root.get("max_height_mm"),
+            "max_overall_diameter_mm": root.get("max_overall_diameter_mm"),
+            "max_twisted_diameter_mm" :root.get("max_twisted_diameter_mm"),
+            "recommended_core_layup" : root.get("recommended_core_layup"),
+            "tolerance_percent": root.get("tolerance_percent"),
+            "number_of_strands": root.get("number_of_strands"),
+            "inner_layer_percent": root.get("inner_layer_percent"),
+            "outer_layer_percent": root.get("outer_layer_percent"),
+            "length_meters": root.get("length_meters"),
             "number_of_strands_per_core": root.get("number_of_strands_per_core"),
             "strand_diameter_mm": root.get("strand_diameter_mm"),
             "insulation_percent": root.get("insulation_percent"),
@@ -219,74 +230,130 @@ class Overlay(QWidget):
         print(data_analysis)
         print(order_display)
         
-        self.close()
+        Overlay.save_both_dbs(data_analysis, order_display)
         
-        return data_analysis, order_display
+        QMessageBox.information(
+            self,
+                "Success",
+                "Order saved successfully"
+        )
+        
+        self.close()
     
-
     
+    @staticmethod
     def save_both_dbs(analytics, order):
 
         order_id = Overlay.generate_order_id()
 
         # ---------- Analytics DB ----------
-        conn_a = sqlite3.connect("analytics.db")
+        conn_a = sqlite3.connect("db/analytics.db")
         cur_a = conn_a.cursor()
 
         cur_a.execute("""
-        INSERT INTO analytics
-        (
-            order_id, wire_type, variant, material,
-            conductor_weight_kg, pvc_weight_kg, total_cost,
-            length_meters
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            order_id,
-            order["wire_type"],
-            order["variant"],
-            order["material"],
-            analytics["conductor_weight_kg"],
-            analytics["pvc_weight_kg"],
-            analytics["total_cost"],
-            order.get("length_meters", 0)
-        ))
+            INSERT INTO analytics
+            (
+                order_id,
+                wire_type,
+                table_ref,
+                conductor_class,
+                variant,
+                material,
+                conductor_weight_kg,
+                aluminium_weight_kg,
+                copper_rate_per_kg,
+                metal_rate_per_kg,
+                pvc_rate_per_kg,
+                pvc_weight_kg,
+                weight_per_meter_kg,
+                cost_per_meter,
+                total_cost,
+                length_meters
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                order_id,
+                analytics.get("wire_type"),
+                analytics.get("table_ref"),
+                analytics.get("conductor_class"),
+                analytics.get("variant"),
+                analytics.get("material"),
+                analytics.get("conductor_weight_kg"),
+                analytics.get("aluminium_weight_kg"),
+                analytics.get("copper_rate_per_kg"),
+                analytics.get("metal_rate_per_kg"),
+                analytics.get("pvc_rate_per_kg"),
+                analytics.get("pvc_weight_kg"),
+                analytics.get("weight_per_meter_kg"),
+                analytics.get("cost_per_meter"),
+                analytics.get("total_cost"),
+                analytics.get("length_meters")
+            ))
+
 
         conn_a.commit()
         conn_a.close()
 
         # ---------- Orders DB ----------
-        conn_o = sqlite3.connect("orders.db")
+        conn_o = sqlite3.connect("db/orders.db")
         cur_o = conn_o.cursor()
 
         cur_o.execute("""
-        INSERT INTO orders
-        (
-            order_id, wire_type, variant, material,
-            nominal_area_sqmm, number_of_cores,
-            nominal_insulation_ti_mm, nominal_sheath_ts_mm,
-            max_width_mm, max_height_mm,
-            strand_diameter_mm, number_of_strands_per_core,
-            insulation_percent, bedding_percent, sheath_percent
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            order_id,
-            order["wire_type"],
-            order["variant"],
-            order["material"],
-            order["nominal_area_sqmm"],
-            order["number_of_cores"],
-            order.get("nominal_insulation_ti_mm", 0),
-            order.get("nominal_sheath_ts_mm", 0),
-            order.get("max_width_mm", 0),
-            order.get("max_height_mm", 0),
-            order["strand_diameter_mm"],
-            order["number_of_strands_per_core"],
-            order["insulation_percent"],
-            order.get("bedding_percent", 0),
-            order.get("sheath_percent", 0)
-        ))
+            INSERT INTO orders
+            (
+                order_id,
+                wire_type,
+                variant,
+                material,
+                nominal_area_sqmm,
+                number_of_cores,
+                conductor_class,
+                nominal_insulation_ti_mm,
+                nominal_sheath_ts_mm,
+                max_width_mm,
+                max_height_mm,
+                max_overall_diameter_mm,
+                max_twisted_diameter_mm,
+                recommended_core_layup,
+                strand_diameter_mm,
+                tolerance_percent,
+                number_of_strands_per_core,
+                number_of_strands,
+                insulation_percent,
+                inner_layer_percent,
+                outer_layer_percent,
+                bedding_percent,
+                sheath_percent,
+                length_meters
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                order_id,
+                order.get("wire_type"),
+                order.get("variant"),
+                order.get("material"),
+                order.get("nominal_area_sqmm"),
+                order.get("number_of_cores"),
+                order.get("conductor_class"),
+                order.get("nominal_insulation_ti_mm"),
+                order.get("nominal_sheath_ts_mm"),
+                order.get("max_width_mm"),
+                order.get("max_height_mm"),
+                order.get("max_overall_diameter_mm"),
+                order.get("max_twisted_diameter_mm"),
+                order.get("recommended_core_layup"),
+                order.get("strand_diameter_mm"),
+                order.get("tolerance_percent"),
+                order.get("number_of_strands_per_core"),
+                order.get("number_of_strands"),
+                order.get("insulation_percent"),
+                order.get("inner_layer_percent"),
+                order.get("outer_layer_percent"),
+                order.get("bedding_percent"),
+                order.get("sheath_percent"),
+                order.get("length_meters")
+            ))
+
 
         conn_o.commit()
         conn_o.close()
