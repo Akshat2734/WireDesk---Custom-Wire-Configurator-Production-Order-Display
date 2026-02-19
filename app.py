@@ -13,49 +13,49 @@ from overlay import Overlay
 cards_data = [
     {
         "title": "House Wire / Multistrand Wire",
-        "details": "A programming language for developers",
+        "details": "NULL",
         "img": "img/house_wire.jpg",
         "json": "data/house_wire.json"
     },
     {
         "title": "Multi Core Round Cable",
-        "details": "GUI framework for desktop apps",
+        "details": "NULL",
         "img": "img/multicore_cable.jpg",
         "json": "data/multi_core_round_cable.json"
     },
     {
         "title": "3 Core Flat Submersible Cable",
-        "details": "Tools that enhance productivity",
+        "details": "NULL",
         "img": "img/3_core_flat_submersible_cable.jpg",
         "json": "data/3_core_flat_submersible_cable.json"
     },
     {
         "title": "Service Wire",
-        "details": "A programming language for developers",
+        "details": "NULL",
         "img": "img/service_wire.jpg",
         "json": "data/service_wire.json"
     },
     {
         "title": "Flexible Twisted Wire",
-        "details": "GUI framework for desktop apps",
+        "details": "NULL",
         "img": "img/flexible_twisted_wire.jpg",
         "json": "data/flexible_twisted_wire.json"
     },
     {
         "title": "Aluminium Cable and Wire",
-        "details": "Tools that enhance productivity",
+        "details": "NULL",
         "img": "img/aluminium_cable_and_wire.jpg",
         "json": "data/aluminium_cable_and_wire.json"
     },
     {
         "title": "Speaker Wire",
-        "details": "A programming language for developers",
+        "details": "NULL",
         "img": "img/speaker_wire.jpg",
         "json": "data/speaker_wire.json"
     },
     {
         "title": "Parallel Flat Wire",
-        "details": "GUI framework for desktop apps",
+        "details": "NULL",
         "img": "img/parallel_flat_wire.jpg",
         "json": "data/parallel_flat_wire.json"
     }
