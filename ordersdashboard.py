@@ -2,41 +2,35 @@ import sqlite3
 import re
 
 from PyQt6.QtWidgets import (
-    QWidget,
-    QLabel,
-    QVBoxLayout,
-    QHBoxLayout,
-    QComboBox,
-    QFrame,
-    QPushButton
+    QWidget, QLabel, QVBoxLayout,
+    QComboBox, QFrame, QPushButton
 )
 
 from PyQt6.QtCore import Qt
 
+# Import SyncManager
+from network_sync import SyncManager
+
 
 # ======================
 # HELPER FUNCTION
-# Adds space before capitals
-# Example: FlatSubmersibleCable → Flat Submersible Cable
 # ======================
 
 def format_wire_name(name):
-
     if not name:
         return ""
-
     return re.sub(r'(?<!^)(?=[A-Z])', ' ', name)
 
 
 # ======================
-# ORDER CARD WIDGET
+# ORDER CARD
 # ======================
 
 class OrderCard(QWidget):
 
     STATUS_OPTIONS = ["preprocessing", "processing", "done"]
 
-    def __init__(self, order_data, refresh_callback):
+    def __init__(self, order_data, sync_manager):
 
         super().__init__()
 
@@ -46,7 +40,7 @@ class OrderCard(QWidget):
         self.total_cost = order_data["total_cost"]
         self.status = order_data["status"]
 
-        self.refresh_callback = refresh_callback
+        self.sync_manager = sync_manager
 
         self.expanded = False
 
@@ -58,26 +52,22 @@ class OrderCard(QWidget):
             QFrame {
                 background:#3a3a3a;
                 border-radius:8px;
-                padding:8px;
+                padding:10px;
             }
         """)
 
         frame_layout = QVBoxLayout(self.frame)
 
-        # ======================
-        # ORDER ID BUTTON
-        # ======================
-
+        # Header
         self.header_btn = QPushButton(f"Order ID: {self.order_id}")
 
         self.header_btn.setCursor(Qt.CursorShape.PointingHandCursor)
 
-        # HOVER EFFECT → BLUE
         self.header_btn.setStyleSheet("""
             QPushButton {
                 text-align:left;
                 font-weight:bold;
-                font-size:14px;
+                font-size:15px;
                 border:none;
                 color:white;
             }
@@ -91,10 +81,7 @@ class OrderCard(QWidget):
 
         frame_layout.addWidget(self.header_btn)
 
-        # ======================
-        # STATUS DROPDOWN
-        # ======================
-
+        # Status dropdown
         self.status_box = QComboBox()
 
         self.status_box.addItems(self.STATUS_OPTIONS)
@@ -105,21 +92,22 @@ class OrderCard(QWidget):
 
         frame_layout.addWidget(self.status_box)
 
-        # ======================
-        # DETAILS DROPDOWN
-        # ======================
-
+        # Details
         self.details_widget = QWidget()
 
         details_layout = QVBoxLayout(self.details_widget)
 
-        wire_name = format_wire_name(self.wire_type)
+        details_layout.addWidget(QLabel(
+            f"Wire Name: {format_wire_name(self.wire_type)}"
+        ))
 
-        details_layout.addWidget(QLabel(f"Wire Name: {wire_name}"))
+        details_layout.addWidget(QLabel(
+            f"Length: {self.length} meters"
+        ))
 
-        details_layout.addWidget(QLabel(f"Length: {self.length} meters"))
-
-        details_layout.addWidget(QLabel(f"Total Cost: ₹{self.total_cost}"))
+        details_layout.addWidget(QLabel(
+            f"Total Cost: ₹{self.total_cost}"
+        ))
 
         self.details_widget.setVisible(False)
 
@@ -127,9 +115,6 @@ class OrderCard(QWidget):
 
         main_layout.addWidget(self.frame)
 
-    # ======================
-    # TOGGLE DROPDOWN
-    # ======================
 
     def toggle_expand(self):
 
@@ -137,43 +122,41 @@ class OrderCard(QWidget):
 
         self.details_widget.setVisible(self.expanded)
 
-    # ======================
-    # UPDATE STATUS
-    # ======================
 
     def update_status(self, new_status):
 
         try:
-            conn_a = sqlite3.connect("db/analytics.db")
-            cur_a = conn_a.cursor()
 
-            cur_a.execute("""
-                UPDATE analytics
-                SET status = ?
-                WHERE order_id = ?
-            """, (new_status, self.order_id))
+            # Update analytics DB
+            conn = sqlite3.connect("db/analytics.db")
 
-            conn_a.commit()
-            conn_a.close()
+            conn.execute(
+                "UPDATE analytics SET status=? WHERE order_id=?",
+                (new_status, self.order_id)
+            )
+
+            conn.commit()
+            conn.close()
 
 
-            conn_o = sqlite3.connect("db/orders.db")
-            cur_o = conn_o.cursor()
+            # Update orders DB
+            conn = sqlite3.connect("db/orders.db")
 
-            cur_o.execute("""
-                UPDATE orders
-                SET status = ?
-                WHERE order_id = ?
-            """, (new_status, self.order_id))
+            conn.execute(
+                "UPDATE orders SET status=? WHERE order_id=?",
+                (new_status, self.order_id)
+            )
 
-            conn_o.commit()
-            conn_o.close()
+            conn.commit()
+            conn.close()
 
-            self.refresh_callback()
+
+            # Broadcast to all apps
+            self.sync_manager.broadcast()
 
         except Exception as e:
-            print("Error updating status:", e)
 
+            print("Status update error:", e)
 
 
 # ======================
@@ -188,11 +171,14 @@ class OrdersDashboard(QWidget):
 
         self.layout = QVBoxLayout(self)
 
+        # Initialize sync manager
+        self.sync_manager = SyncManager()
+
+        # Listen for network updates
+        self.sync_manager.update_received.connect(self.refresh)
+
         self.load_orders()
 
-    # ======================
-    # LOAD ORDERS
-    # ======================
 
     def load_orders(self):
 
@@ -200,13 +186,12 @@ class OrdersDashboard(QWidget):
 
         cur = conn.cursor()
 
-        # IMPORTANT → get required fields
         cur.execute("""
             SELECT order_id,
-                wire_type,
-                length_meters,
-                total_cost,
-                status
+                   wire_type,
+                   length_meters,
+                   total_cost,
+                   status
             FROM analytics
             WHERE status != 'done'
             ORDER BY order_id DESC
@@ -216,31 +201,28 @@ class OrdersDashboard(QWidget):
 
         conn.close()
 
+
         for row in rows:
 
             order_data = {
 
                 "order_id": row[0],
-
                 "wire_type": row[1],
-
                 "length_meters": row[2],
-
                 "total_cost": row[3],
-
                 "status": row[4]
 
             }
 
-            card = OrderCard(order_data, self.refresh)
+            card = OrderCard(
+                order_data,
+                self.sync_manager
+            )
 
             self.layout.addWidget(card)
 
         self.layout.addStretch()
 
-    # ======================
-    # REFRESH DASHBOARD
-    # ======================
 
     def refresh(self):
 
