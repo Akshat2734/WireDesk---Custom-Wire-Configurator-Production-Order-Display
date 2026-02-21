@@ -86,11 +86,7 @@ class MainWindow(QMainWindow):
         top_layout.addWidget(QLabel("WireDesk - Custom Wire Configurator & Production Order Display"))
         top_layout.addStretch()
         self.dashboard_window = DashboardWindow()
-
-        self.dashboard_window = DashboardWindow()
-
         dashboard_btn = QLabel("Dashboard")
-
         dashboard_btn.setStyleSheet("""
             QLabel {
                 color:white;
@@ -101,11 +97,25 @@ class MainWindow(QMainWindow):
                 color:#4da3ff;
             }
         """)
-
         dashboard_btn.mousePressEvent = self.open_dashboard
-
         top_layout.addWidget(dashboard_btn)
-        top_layout.addWidget(QLabel("Add"))
+        
+        # === NEW: Clickable 'Add / Sync' Button ===
+        add_btn = QLabel("Add / Sync")
+        add_btn.setStyleSheet("""
+            QLabel {
+                color:white;
+                font-weight:bold;
+                margin-left: 15px;
+            }
+            QLabel:hover {
+                color:#4da3ff;
+            }
+        """)
+        # Connect the click event to our new ping method
+        add_btn.mousePressEvent = self.ping_update
+        top_layout.addWidget(add_btn)
+
         top.setFixedHeight(50)
         top.setStyleSheet("background:#444;color:white;padding:10px;")
 
@@ -170,10 +180,20 @@ class MainWindow(QMainWindow):
         super().resizeEvent(event)
         
     def open_dashboard(self, event):
-
         self.dashboard_window.show()
-
         self.dashboard_window.raise_()
+    
+    def ping_update(self, event=None):
+            """
+            Refreshes the local dashboard and broadcasts a UDP ping 
+            to update all other PyQt display clients.
+            """
+            # 1. Refresh the local UI first
+            self.dashboard.refresh()
+            # 2. Ping the network using the SyncManager inside OrdersDashboard
+            if hasattr(self.dashboard, 'sync_manager'):
+                self.dashboard.sync_manager.broadcast()
+                print("Network Ping Sent: Displays updating...")
 
 
 app = QApplication(sys.argv)
