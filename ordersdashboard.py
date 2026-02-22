@@ -3,18 +3,10 @@ import re
 
 from PyQt6.QtWidgets import (
     QWidget, QLabel, QVBoxLayout,
-    QComboBox, QFrame, QPushButton
+    QComboBox, QFrame, QPushButton, QSizePolicy, QHBoxLayout
 )
-
 from PyQt6.QtCore import Qt
 
-# Import SyncManager
-from network_sync import SyncManager
-
-
-# ======================
-# HELPER FUNCTION
-# ======================
 
 def format_wire_name(name):
     if not name:
@@ -22,170 +14,190 @@ def format_wire_name(name):
     return re.sub(r'(?<!^)(?=[A-Z])', ' ', name)
 
 
-# ======================
-# ORDER CARD
-# ======================
-
-class OrderCard(QWidget):
+class OrderCard(QFrame):
 
     STATUS_OPTIONS = ["preprocessing", "processing", "done"]
 
-    def __init__(self, order_data, sync_manager):
-
+    def __init__(self, analytics_data, sync_manager):
         super().__init__()
 
-        self.order_id = order_data["order_id"]
-        self.wire_type = order_data["wire_type"]
-        self.length = order_data["length_meters"]
-        self.total_cost = order_data["total_cost"]
-        self.status = order_data["status"]
-
         self.sync_manager = sync_manager
+        self.analytics_data = analytics_data
+        self.order_id = analytics_data["order_id"]
 
-        self.expanded = False
+        self.setObjectName("OrderCard")
+        self.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Minimum
+        )
 
         main_layout = QVBoxLayout(self)
+        main_layout.setSpacing(8)
+        main_layout.setContentsMargins(12, 12, 12, 12)
 
-        self.frame = QFrame()
+        # ================= HEADER =================
+        self.header = QPushButton(f"Order #{self.order_id}")
+        self.header.setObjectName("OrderHeader")
+        self.header.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.header.setMinimumHeight(34)
+        self.header.clicked.connect(self.toggle_expand)
 
-        self.frame.setStyleSheet("""
-            QFrame {
-                background:#3a3a3a;
-                border-radius:8px;
-                padding:10px;
-            }
-        """)
+        main_layout.addWidget(self.header)
 
-        frame_layout = QVBoxLayout(self.frame)
-
-        # Header
-        self.header_btn = QPushButton(f"Order ID: {self.order_id}")
-
-        self.header_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-
-        self.header_btn.setStyleSheet("""
-            QPushButton {
-                text-align:left;
-                font-weight:bold;
-                font-size:15px;
-                border:none;
-                color:white;
-            }
-
-            QPushButton:hover {
-                color:#4da3ff;
-            }
-        """)
-
-        self.header_btn.clicked.connect(self.toggle_expand)
-
-        frame_layout.addWidget(self.header_btn)
-
-        # Status dropdown
+        # ================= STATUS =================
         self.status_box = QComboBox()
-
         self.status_box.addItems(self.STATUS_OPTIONS)
-
-        self.status_box.setCurrentText(self.status)
+        self.status_box.setCurrentText(
+            analytics_data.get("status", "preprocessing")
+        )
 
         self.status_box.currentTextChanged.connect(self.update_status)
+        self.status_box.currentTextChanged.connect(self.update_status_style)
 
-        frame_layout.addWidget(self.status_box)
+        main_layout.addWidget(self.status_box)
 
-        # Details
+        self.update_status_style(self.status_box.currentText())
+
+        # ================= DETAILS =================
         self.details_widget = QWidget()
+        details_layout = QHBoxLayout(self.details_widget)
+        details_layout.setSpacing(20)
 
-        details_layout = QVBoxLayout(self.details_widget)
+        left_column = QVBoxLayout()
+        right_column = QVBoxLayout()
 
-        details_layout.addWidget(QLabel(
-            f"Wire Name: {format_wire_name(self.wire_type)}"
-        ))
+        order_data = self.fetch_order_db()
 
-        details_layout.addWidget(QLabel(
-            f"Length: {self.length} meters"
-        ))
+        analytics_unique = {
+            k: v for k, v in analytics_data.items()
+            if k not in order_data
+        }
 
-        details_layout.addWidget(QLabel(
-            f"Total Cost: ₹{self.total_cost}"
-        ))
+        # ----- LEFT : ORDER DB -----
+        left_title = QLabel("Order Details")
+        left_title.setStyleSheet("font-weight:600; font-size:14px;")
+        left_column.addWidget(left_title)
+
+        for key, value in order_data.items():
+            label = QLabel(
+                f"{key.replace('_',' ').title()}: {value}"
+            )
+            label.setWordWrap(True)
+            left_column.addWidget(label)
+
+        left_column.addStretch()
+
+        # ----- RIGHT : ANALYTICS DB -----
+        right_title = QLabel("Analytics Details")
+        right_title.setStyleSheet("font-weight:600; font-size:14px;")
+        right_column.addWidget(right_title)
+
+        for key, value in analytics_unique.items():
+            label = QLabel(
+                f"{key.replace('_',' ').title()}: {value}"
+            )
+            label.setWordWrap(True)
+            right_column.addWidget(label)
+
+        right_column.addStretch()
+
+        details_layout.addLayout(left_column, 1)
+        details_layout.addLayout(right_column, 1)
 
         self.details_widget.setVisible(False)
+        main_layout.addWidget(self.details_widget)
 
-        frame_layout.addWidget(self.details_widget)
+    # ================= FETCH ORDER DB =================
 
-        main_layout.addWidget(self.frame)
+    def fetch_order_db(self):
 
+        conn = sqlite3.connect("db/orders.db")
+        cur = conn.cursor()
+
+        cur.execute("""
+            SELECT *
+            FROM orders
+            WHERE order_id=?
+        """, (self.order_id,))
+
+        row = cur.fetchone()
+        columns = [col[0] for col in cur.description]
+        conn.close()
+
+        if row:
+            return dict(zip(columns, row))
+
+        return {}
+
+    # ================= TOGGLE =================
 
     def toggle_expand(self):
 
-        self.expanded = not self.expanded
+        self.details_widget.setVisible(
+            not self.details_widget.isVisible()
+        )
 
-        self.details_widget.setVisible(self.expanded)
+        self.adjustSize()
 
+    # ================= STATUS UPDATE =================
 
     def update_status(self, new_status):
 
-        try:
+        conn = sqlite3.connect("db/analytics.db")
+        conn.execute(
+            "UPDATE analytics SET status=? WHERE order_id=?",
+            (new_status, self.order_id)
+        )
+        conn.commit()
+        conn.close()
 
-            # Update analytics DB
-            conn = sqlite3.connect("db/analytics.db")
+        conn = sqlite3.connect("db/orders.db")
+        conn.execute(
+            "UPDATE orders SET status=? WHERE order_id=?",
+            (new_status, self.order_id)
+        )
+        conn.commit()
+        conn.close()
 
-            conn.execute(
-                "UPDATE analytics SET status=? WHERE order_id=?",
-                (new_status, self.order_id)
-            )
+        self.sync_manager.broadcast()
 
-            conn.commit()
-            conn.close()
+    # ================= STATUS COLOR =================
 
+    def update_status_style(self, status):
 
-            # Update orders DB
-            conn = sqlite3.connect("db/orders.db")
+        styles = {
+            "preprocessing": "#f4d35e",
+            "processing": "#17c3b2",
+            "done": "#28c76f"
+        }
 
-            conn.execute(
-                "UPDATE orders SET status=? WHERE order_id=?",
-                (new_status, self.order_id)
-            )
+        color = styles.get(status, "#ffffff")
 
-            conn.commit()
-            conn.close()
-
-
-            # Broadcast to all apps
-            self.sync_manager.broadcast()
-
-        except Exception as e:
-
-            print("Status update error:", e)
-
-
-# ======================
-# DASHBOARD
-# ======================
+        self.status_box.setStyleSheet(f"""
+            QComboBox {{
+                border: 1px solid {color};
+                border-radius: 6px;
+                padding: 4px;
+                color: {color};
+                background-color: #2a3142;
+            }}
+        """)
 
 class OrdersDashboard(QWidget):
 
-    def __init__(self):
-
+    def __init__(self, sync_manager):
         super().__init__()
-
         self.layout = QVBoxLayout(self)
-
         # Initialize sync manager
-        self.sync_manager = SyncManager()
-
+        self.sync_manager = sync_manager
         # Listen for network updates
         self.sync_manager.update_received.connect(self.refresh)
-
+        #self.sync_manager.update_received.connect(self.load_compact_orders)
         self.load_orders()
 
-
     def load_orders(self):
-
         conn = sqlite3.connect("db/analytics.db")
-
         cur = conn.cursor()
-
         cur.execute("""
             SELECT order_id,
                    wire_type,
@@ -196,43 +208,28 @@ class OrdersDashboard(QWidget):
             WHERE status != 'done'
             ORDER BY order_id DESC
         """)
-
         rows = cur.fetchall()
-
         conn.close()
 
-
         for row in rows:
-
             order_data = {
-
                 "order_id": row[0],
                 "wire_type": row[1],
                 "length_meters": row[2],
                 "total_cost": row[3],
                 "status": row[4]
-
             }
-
             card = OrderCard(
                 order_data,
                 self.sync_manager
             )
-
             self.layout.addWidget(card)
-
         self.layout.addStretch()
-
-
+        
     def refresh(self):
-
         while self.layout.count():
-
             item = self.layout.takeAt(0)
-
             widget = item.widget()
-
             if widget:
                 widget.deleteLater()
-
         self.load_orders()
