@@ -1,21 +1,25 @@
 import sys
 import qdarkstyle
 from PyQt6.QtWidgets import QApplication, QMainWindow
+from network_sync import SyncManager
 from ordersdashboard import OrdersDashboard
+from styles import GLOBAL_STYLE
 
 class McDonaldDisplayWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+
         self.setWindowTitle("Live Production Display")
         self.setMinimumSize(1000, 700)
-        
-        # Embed the exact same dashboard
-        self.dashboard = OrdersDashboard()
+
+        self.sync_manager = SyncManager()
+
+        self.dashboard = OrdersDashboard(self.sync_manager)
         self.setCentralWidget(self.dashboard)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    app.setStyleSheet(qdarkstyle.load_stylesheet())
+    app.setStyleSheet(GLOBAL_STYLE)
     
     window = McDonaldDisplayWindow()
     window.show()
