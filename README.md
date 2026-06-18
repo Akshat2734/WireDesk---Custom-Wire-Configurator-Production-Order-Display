@@ -1,102 +1,53 @@
-# WireDesk - Custom Wire Configurator & Production Order Display
+# WireDesk: Distributed Production Management Architecture
 
-**WireDesk** is a Python-based desktop application built with **PyQt6**. It serves as a dynamic wire configuration tool designed to help manufacturers and engineers calculate wire specifications, estimate costs, check compliance against standards (IS 694), and manage production orders.
+## 1. System Topology & Request Lifecycle
 
-## 🚀 Features
+The architecture routes HTTP REST traffic and persistent WebSocket connections through a unified NGINX gateway, balancing loads across isolated stateless application nodes while protecting physical storage layers via proxy pooling. The system is designed to decouple edge client state from backend application memory.
 
-* **Dynamic Form Generation:** The UI for every wire type is generated automatically from JSON configuration files. Adding a new wire type is as simple as creating a new JSON file.
-* **Real-time Calculation Engine:** A custom engine parses mathematical formulas defined in JSON strings to calculate dimensions, weights (Copper/PVC), and costs instantly based on user input.
-* **Standard Compliance Checks:** Automatically validates calculated dimensions and insulation thickness against **IS 694 Standards** using built-in lookup tables (Tables 3, 4, 5, 6, 7, 9, 10).
-* **Order Management:** Saves valid configurations to an SQLite database (`orders.db`) for production tracking.
-* **Analytics Tracking:** Logs cost and weight data into an analytics database (`analytics.db`) for dashboard reporting.
-* **Modern UI:** Features a dark-themed interface using `qdarkstyle`, custom card widgets, and smooth accordion animations.
+### Architectural Flow
+When a request enters the system, it follows a strict topology designed for high availability and process isolation:
 
-## 🛠️ Tech Stack
+1. **Edge Gateway (NGINX):** All client traffic (both PyQt6 Manager ordering apps and live Factory Displays) terminates at the NGINX reverse proxy. NGINX handles round-robin load balancing across the API cluster and maintains the HTTP `Upgrade` and `Connection` headers necessary to keep long-lived WebSocket tunnels alive.
+2. **Application Cluster (Flask / Gunicorn / Eventlet):** Stateless API nodes process the core business logic and database mapping. By utilizing Eventlet, the Gunicorn workers can handle concurrent WebSocket connections asynchronously without blocking the main execution threads.
+3. **Real-Time Backplane (Redis):** Because API nodes are horizontally scaled, client WebSocket connections are fragmented across the cluster. Redis acts as a Pub/Sub message broker. When a state mutation occurs on Node A, it is published to Redis, which instantaneously pushes the event to Node B so all connected edge displays remain synchronized regardless of which node they are attached to.
+4. **Connection Pooling (PgBouncer):** Application nodes do not connect directly to the primary database. Write traffic is routed through PgBouncer operating in `transaction` mode. This multiplexes thousands of lightweight application virtual connections through a strictly limited pool of heavy physical PostgreSQL connections, preventing database Out-Of-Memory (OOM) failures under extreme load.
+5. **Storage Tier (PostgreSQL Primary/Replica):** The physical storage layer is separated into a Primary node for ACID state mutations and a Replica node for read-only queries, synchronized asynchronously via Write-Ahead Logging (WAL).
 
-* **Language:** Python 3.x
-* **GUI Framework:** PyQt6
-* **Styling:** QDarkStyle, Custom CSS
-* **Database:** SQLite3
-* **Data Format:** JSON (for logic and configuration)
 
-## 📂 Project Structure
+## Repository Architecture
 
-    WireDesk/
-    │
-    ├── app.py                  # Main entry point. Sets up the Dashboard and Grid View.
-    ├── overlay.py              # Handles the detailed configuration view, calculations, and DB saving.
-    ├── calculation_engine.py   # Logic to parse JSON formulas and execute calculations safely.
-    ├── json_form.py            # Generates UI input fields dynamically from JSON data.
-    ├── accordion.py            # Custom collapsible widget implementation.
-    ├── card_widget.py          # Custom widget for the wire selection cards.
-    │
-    ├── data/                   # JSON configuration files for different wire types
-    │   ├── house_wire.json
-    │   ├── multi_core_round_cable.json
-    │   ├── service_wire.json
-    │   └── ...
-    │
-    ├── lookup_table/           # Python dictionaries representing IS 694 Standard Tables
-    │   ├── lookup_registry.py  # Registry to fetch specific table data dynamically.
-    │   ├── lookup_table_3.py
-    │   ├── lookup_table_4.py
-    │   └── ...
-    │
-    ├── db/
-    │   └── init_dbs.py         # Script to initialize/reset the SQLite databases.
-    │
-    ├── img/                    # Images for the dashboard cards
-    └── README.md
+To enforce strict Separation of Concerns and ensure microservice-readiness, the codebase is decoupled into completely independent `client` and `server` environments. The infrastructure and orchestration configurations sit at the repository root.
 
-## ⚙️ Installation & Setup
+```text
+wiredesk/
+├── .github/
+│   └── workflows/
+│       └── ci.yml                 # Automated pipeline for Flake8 linting and pytest
+├── client/                        # The Edge Client (PyQt6 Desktop Apps)
+│   ├── app.py                     # Entry point for the Manager's Configuration App
+│   ├── display_app.py             # Entry point for the live Factory Floor Display
+│   ├── network_sync.py            # Socket.IO client bridging PyQt6 to cloud WebSockets
+│   ├── components/                # Reusable UI classes (Card, Overlay, Dashboard)
+│   ├── assets/                    # Static UI resources (images, icons)
+│   ├── data/                      # JSON schemas for dynamic configuration forms
+│   └── lookup_table/              # Local manufacturing constants (tolerances, weights)
+├── server/                        # The Application Cluster (Flask/Gunicorn)
+│   ├── app.py                     # WSGI entry point and Application Factory
+│   ├── requirements.txt           # Python dependencies for the Docker build
+│   ├── api/                       # Flask Blueprints (HTTP routes & Socket.IO events)
+│   ├── controllers/               # Core Business Logic (Math Engine & Transactional Outbox)
+│   ├── models/                    # SQLAlchemy ORM definitions (PostgreSQL schema mapping)
+│   ├── extensions/                # Infrastructure wiring (SQLAlchemy, SocketIO, JWT)
+│   ├── utils/                     # Custom RBAC decorators and middleware
+│   ├── metrics.py                 # Prometheus telemetry (Counters, Histograms)
+│   └── tests/                     # Automated unit and integration testing suite
+├── compose.yaml                   # Docker Compose orchestrator for the distributed stack
+├── Dockerfile                     # Multi-stage containerization script for API nodes
+├── nginx.conf                     # Reverse Proxy config (Load Balancing + WebSockets)
+├── prometheus.yml                 # Scraper configuration mapping to API metric endpoints
+└── alerts.yml                     # Alertmanager rules for triggering automated alarms
+```
 
-1. **Clone the Repository**
 
-        git clone [https://github.com/yourusername/WireDesk.git](https://github.com/yourusername/WireDesk.git)
-        cd WireDesk
 
-2. **Install Dependencies**
-   You will need Python installed. Install the required libraries:
-
-        pip install PyQt6 QDarkStyle
-
-3. **Initialize the Database**
-   Before running the app for the first time, generate the SQLite databases:
-
-        python db/init_dbs.py
-
-   *This will create `orders.db` and `analytics.db` in your root directory.*
-
-4. **Run the Application**
-
-        python app.py
-
-## 📖 How It Works
-
-### 1. The Configuration System (JSON)
-The core logic resides in the `data/` folder. Each JSON file defines:
-* **Constants:** Base values like specific gravity of Copper/Aluminium/PVC.
-* **Lookup Standard:** Defines which IS 694 table to use for validation.
-* **User Input:** Defines which fields the user needs to type in (e.g., `length_meters`, `insulation_percent`).
-* **Calculated:** Contains mathematical formulas stored as strings.
-    * *Example:* `"conductor_area_sqmm": "pi * strand_diameter_mm**2 / 4 * number_of_strands"`
-* **Compliance:** Python conditional strings to return "Yes" or "No" based on calculated values vs. lookup table limits.
-
-### 2. The Calculation Engine
-The `CalculationEngine` class loads the JSON, safely executes the string formulas using Python's `eval` (within a restricted scope), and updates the UI in real-time as the user types.
-
-### 3. Database Saving
-When the user clicks **Add**, the application checks:
-1. Are all compliance checks "Yes"?
-2. If passed, it saves the technical specs to `orders.db`.
-3. It saves the cost/weight breakdown to `analytics.db`.
-
-## 🤝 Contributing
-
-Contributions are welcome!
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
 
