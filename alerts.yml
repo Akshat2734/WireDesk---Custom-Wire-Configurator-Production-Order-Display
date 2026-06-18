@@ -1,0 +1,15 @@
+groups:
+  - name: api_alerts
+    rules:
+      - alert: HighAPIErrorRate
+        # PromQL: Divide 500-level errors by total requests over the last 5 minutes
+        expr: >
+          sum(rate(http_requests_total{http_status=~"5.."}[5m])) 
+          / 
+          sum(rate(http_requests_total[5m])) > 0.02
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High API Error Rate Detected"
+          description: "API is experiencing an error rate > 2% for the last 5 minutes."
