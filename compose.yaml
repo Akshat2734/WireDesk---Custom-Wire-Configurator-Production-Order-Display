@@ -1,0 +1,176 @@
+version: '3.8'
+
+services:
+  # ==========================================
+  # 1. THE STORAGE LAYER (PRIMARY & REPLICA)
+  # ==========================================
+  pg_primary:
+    image: bitnami/postgresql:16
+    restart: always
+    shm_size: 128mb
+    environment:
+      - POSTGRESQL_REPLICATION_MODE=master
+      - POSTGRESQL_REPLICATION_USER=repl_user
+      - POSTGRESQL_REPLICATION_PASSWORD=supersecret_repl
+      - POSTGRESQL_USERNAME=${POSTGRES_USER}
+      - POSTGRESQL_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRESQL_DATABASE=${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - primary-data:/bitnami/postgresql
+    networks:
+      - factory_net
+
+  pg_replica:
+    image: bitnami/postgresql:16
+    restart: always
+    shm_size: 128mb
+    environment:
+      - POSTGRESQL_REPLICATION_MODE=slave
+      - POSTGRESQL_REPLICATION_MODE_MASTER_HOST=pg_primary
+      - POSTGRESQL_REPLICATION_USER=repl_user
+      - POSTGRESQL_REPLICATION_PASSWORD=supersecret_repl
+      - POSTGRESQL_MASTER_PORT_NUMBER=5432
+    ports:
+      - "5433:5432" # Exposed on 5433 locally to prevent port clashing
+    depends_on:
+      - pg_primary
+    volumes:
+      - replica-data:/bitnami/postgresql
+    networks:
+      - factory_net
+
+  redis:
+    image: redis:latest
+    container_name: my-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    networks:
+      - factory_net
+
+  # ==========================================
+  # 2. THE CONNECTION POOLER (PROTECTING PRIMARY)
+  # ==========================================
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    environment:
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_HOST: pg_primary # Bouncer now routes all traffic to the Master
+      AUTH_TYPE: md5
+      POOL_MODE: transaction
+    ports:
+      - "6432:5432"
+    depends_on:
+      - pg_primary
+    networks:
+      - factory_net
+
+  # ==========================================
+  # 3. THE APPLICATION LAYER (API NODES)
+  # ==========================================
+  api_node_1:
+    build: .
+    environment:
+      # Writes go through PgBouncer to the Primary
+      - SQLALCHEMY_DATABASE_URI=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pgbouncer:5432/${POSTGRES_DB}
+      # Reads go directly to the Replica
+      - REPLICA_DB_URI=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pg_replica:5432/${POSTGRES_DB}
+      - REDIS_URL=redis://redis:6379/0
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+    ports:
+      - "5001:5000"
+    depends_on:
+      - pgbouncer
+      - pg_replica
+      - redis
+    networks:
+      - factory_net
+
+  api_node_2:
+    build: .
+    environment:
+      - SQLALCHEMY_DATABASE_URI=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pgbouncer:5432/${POSTGRES_DB}
+      - REPLICA_DB_URI=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pg_replica:5432/${POSTGRES_DB}
+      - REDIS_URL=redis://redis:6379/0
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+    ports:
+      - "5002:5000"
+    depends_on:
+      - pgbouncer
+      - pg_replica
+      - redis
+    networks:
+      - factory_net
+
+  # ==========================================
+  # 4. UTILITIES
+  # ==========================================
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - "8080:8080"
+    networks:
+      - factory_net
+
+  # ==========================================
+  # 5. OBSERVABILITY LAYER
+  # ==========================================
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./alerts.yml:/etc/prometheus/alerts.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - factory_net
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    ports:
+      - "9093:9093"
+    networks:
+      - factory_net
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin # Default login
+    depends_on:
+      - prometheus
+    networks:
+      - factory_net
+
+  # ==========================================
+  # 6. Load Balancing
+  # ==========================================
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - api_node_1
+      - api_node_2
+    networks:
+      - factory_net
+# ==========================================
+# VOLUMES & NETWORKS
+# ==========================================
+volumes:
+  primary-data:
+  replica-data:
+  redis-data:
+
+networks:
+  factory_net:
+    driver: bridge

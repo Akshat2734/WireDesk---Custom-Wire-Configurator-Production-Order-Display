@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import (
     QLineEdit, QComboBox
 )
 from PyQt6.QtCore import Qt
-from lookup_table.lookup_registry import get_table_options
+from old_py_files.lookup_table.lookup_registry import get_table_options
 
 USER_INPUT = "USER_INPUT"
 FROM_LOOKUP = "FROM_LOOKUP"

@@ -2,13 +2,13 @@ import sys
 
 # --- SAFE IMPORTS ---
 try:
-    from lookup_table.lookup_table_3 import IS_694_TABLE_3
-    from lookup_table.lookup_table_4 import IS_694_TABLE_4
-    from lookup_table.lookup_table_5 import IS_694_TABLE_5
-    from lookup_table.lookup_table_6 import IS_694_TABLE_6
-    from lookup_table.lookup_table_7 import IS_694_TABLE_7
-    from lookup_table.lookup_table_9 import IS_694_TABLE_9
-    from lookup_table.lookup_table_10 import IS_694_TABLE_10
+    from old_py_files.lookup_table.lookup_table_3 import IS_694_TABLE_3
+    from old_py_files.lookup_table.lookup_table_4 import IS_694_TABLE_4
+    from old_py_files.lookup_table.lookup_table_5 import IS_694_TABLE_5
+    from old_py_files.lookup_table.lookup_table_6 import IS_694_TABLE_6
+    from old_py_files.lookup_table.lookup_table_7 import IS_694_TABLE_7
+    from old_py_files.lookup_table.lookup_table_9 import IS_694_TABLE_9
+    from old_py_files.lookup_table.lookup_table_10 import IS_694_TABLE_10
 except ImportError as e:
     print(f"CRITICAL: {e}")
     IS_694_TABLE_3, IS_694_TABLE_4, IS_694_TABLE_5 = {}, {}, {}

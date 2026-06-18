@@ -7,8 +7,8 @@ from PyQt6.QtGui import QGuiApplication
 from PyQt6.QtCore import Qt
 import qdarkstyle
 
-from card_widget import Card
-from overlay import Overlay
+from old_py_files.card_widget import Card
+from old_py_files.overlay import Overlay
 
 cards_data = [
     {

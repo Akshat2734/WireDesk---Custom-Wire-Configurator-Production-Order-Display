@@ -1,0 +1,17 @@
+global:
+  scrape_interval: 5s
+
+# Connect to Alertmanager
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+
+rule_files:
+  - "alerts.yml"
+
+scrape_configs:
+  - job_name: 'flask_api'
+    static_configs:
+      # Prometheus uses Docker's internal DNS to scrape both of your API nodes
+      - targets: ['api_node_1:5000', 'api_node_2:5000']

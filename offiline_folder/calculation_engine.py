@@ -1,6 +1,6 @@
 import math
 from PyQt6.QtWidgets import QLineEdit, QComboBox
-from lookup_table.lookup_registry import LOOKUP_TABLES
+from old_py_files.lookup_table.lookup_registry import LOOKUP_TABLES
 
 class CalculationEngine:
     def __init__(self, json_data):

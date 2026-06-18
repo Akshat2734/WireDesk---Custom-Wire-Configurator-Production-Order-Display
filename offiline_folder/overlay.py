@@ -7,9 +7,9 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, QEvent, pyqtSignal
 
-from json_form import JsonForm
-from calculation_engine import CalculationEngine
-from accordion import Accordion, AccordionSection
+from old_py_files.json_form import JsonForm
+from old_py_files.calculation_engine import CalculationEngine
+from old_py_files.accordion import Accordion, AccordionSection
 
 class Overlay(QWidget):
     

@@ -1,9 +1,9 @@
 import sys
 import qdarkstyle
 from PyQt6.QtWidgets import QApplication, QMainWindow
-from network_sync import SyncManager
-from ordersdashboard import OrdersDashboard
-from styles import GLOBAL_STYLE
+from old_py_files.network_sync import SyncManager
+from old_py_files.ordersdashboard import OrdersDashboard
+from old_py_files.styles import GLOBAL_STYLE
 
 class McDonaldDisplayWindow(QMainWindow):
     def __init__(self):

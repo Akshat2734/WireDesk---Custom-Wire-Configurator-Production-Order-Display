@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QTabWidget,
     QScrollArea
 )
-from ordersdashboard import OrderCard
+from old_py_files.ordersdashboard import OrderCard
 
 
 class OrdersTab(QWidget):
