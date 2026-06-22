@@ -1,11 +1,9 @@
-version: '3.8'
-
 services:
   # ==========================================
   # 1. THE STORAGE LAYER (PRIMARY & REPLICA)
   # ==========================================
   pg_primary:
-    image: bitnami/postgresql:16
+    image: bitnami/postgresql:latest
     restart: always
     shm_size: 128mb
     environment:
@@ -21,17 +19,25 @@ services:
       - primary-data:/bitnami/postgresql
     networks:
       - factory_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
   pg_replica:
-    image: bitnami/postgresql:16
+    image: bitnami/postgresql:latest
     restart: always
     shm_size: 128mb
     environment:
       - POSTGRESQL_REPLICATION_MODE=slave
-      - POSTGRESQL_REPLICATION_MODE_MASTER_HOST=pg_primary
+      - POSTGRESQL_MASTER_HOST=pg_primary
       - POSTGRESQL_REPLICATION_USER=repl_user
       - POSTGRESQL_REPLICATION_PASSWORD=supersecret_repl
       - POSTGRESQL_MASTER_PORT_NUMBER=5432
+      - POSTGRESQL_USERNAME=${POSTGRES_USER}
+      - POSTGRESQL_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRESQL_DATABASE=${POSTGRES_DB}
     ports:
       - "5433:5432" # Exposed on 5433 locally to prevent port clashing
     depends_on:
@@ -51,6 +57,11 @@ services:
     restart: unless-stopped
     networks:
       - factory_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
   # ==========================================
   # 2. THE CONNECTION POOLER (PROTECTING PRIMARY)
@@ -66,7 +77,21 @@ services:
     ports:
       - "6432:5432"
     depends_on:
-      - pg_primary
+      pg_primary:
+        condition: service_healthy
+    networks:
+      - factory_net
+
+  db_init:
+    build: .
+    command: ["python", "-m", "server.init_db"]
+    restart: "no"
+    environment:
+      - SQLALCHEMY_DATABASE_URI=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pg_primary:5432/${POSTGRES_DB}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+    depends_on:
+      pg_primary:
+        condition: service_healthy
     networks:
       - factory_net
 
@@ -85,9 +110,14 @@ services:
     ports:
       - "5001:5000"
     depends_on:
-      - pgbouncer
-      - pg_replica
-      - redis
+      db_init:
+        condition: service_completed_successfully
+      pgbouncer:
+        condition: service_started
+      pg_replica:
+        condition: service_started
+      redis:
+        condition: service_healthy
     networks:
       - factory_net
 
@@ -101,9 +131,14 @@ services:
     ports:
       - "5002:5000"
     depends_on:
-      - pgbouncer
-      - pg_replica
-      - redis
+      db_init:
+        condition: service_completed_successfully
+      pgbouncer:
+        condition: service_started
+      pg_replica:
+        condition: service_started
+      redis:
+        condition: service_healthy
     networks:
       - factory_net
 

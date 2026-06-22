@@ -7,8 +7,8 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends gcc libpq-dev
 
 # Install Python dependencies into a dedicated folder
-COPY requirements.txt .
-RUN pip install --user --no-cache-dir -r requirements.txt
+COPY server/requirements.txt ./server/requirements.txt
+RUN pip install --user --no-cache-dir -r server/requirements.txt
 
 FROM python:3.10-slim
 
@@ -27,4 +27,4 @@ COPY . .
 
 # Expose the port and run via Eventlet for WebSockets
 EXPOSE 5000
-CMD ["gunicorn", "--worker-class", "eventlet", "-w", "1", "-b", "0.0.0.0:5000", "app:create_app()"]
+CMD ["gunicorn", "--worker-class", "eventlet", "-w", "1", "-b", "0.0.0.0:5000", "server.app:create_app()"]

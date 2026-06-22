@@ -1,0 +1,104 @@
+{
+  "constants": {
+    "pi": 3.14159265359,
+    "copper": 8900,
+    "pvc": 1380
+  },
+
+  "wire_type": "MultiCoreRoundCable",
+  "variant": "CircularSheathed",
+
+  "lookup_standard": {
+    "source_standard": "IS 694",
+    "table_ref": "Table 5 / Table 6 / Table 9",
+    "nominal_area_sqmm": "FROM_LOOKUP",
+    "number_of_cores": "FROM_LOOKUP",
+    "conductor_class": "FROM_LOOKUP",
+
+    "nominal_insulation_ti_mm": "FROM_LOOKUP",
+    "nominal_sheath_ts_mm": "FROM_LOOKUP",
+    "max_overall_diameter_mm": "FROM_LOOKUP",
+
+    "recommended_core_layup": "FROM_LOOKUP"
+  },
+
+  "user_input": {
+    "conductor": {
+      "material": "copper",
+      "number_of_strands_per_core": "USER_INPUT",
+      "strand_diameter_mm": "USER_INPUT"
+    },
+
+    "pvc": {
+      "insulation_percent": "USER_INPUT",
+      "bedding_percent": "USER_INPUT",
+      "sheath_percent": "USER_INPUT"
+    },
+
+    "order": {
+      "length_meters": "USER_INPUT",
+      "metal_rate_per_kg": "USER_INPUT",
+      "pvc_rate_per_kg": "USER_INPUT"
+    }
+  },
+
+  "calculated": {
+    "per_core": {
+      "conductor_area_sqmm":
+        "pi * strand_diameter_mm**2 / 4 * number_of_strands_per_core",
+
+      "bare_core_diameter_mm":
+        "(4 * (pi * strand_diameter_mm**2 / 4 * number_of_strands_per_core) / pi) ** 0.5",
+
+      "calculated_insulation_thickness_mm":
+        "((4 * (pi * strand_diameter_mm**2 / 4 * number_of_strands_per_core) / pi) ** 0.5) * insulation_percent / 100",
+
+      "core_outer_diameter_mm":
+        "((4 * (pi * strand_diameter_mm**2 / 4 * number_of_strands_per_core) / pi) ** 0.5) + 2 * (((4 * (pi * strand_diameter_mm**2 / 4 * number_of_strands_per_core) / pi) ** 0.5) * insulation_percent / 100)"
+    },
+
+    "assembly": {
+      "core_bunch_diameter_mm":
+        "(((4 * (pi * strand_diameter_mm**2 / 4 * number_of_strands_per_core) / pi) ** 0.5) + 2 * (((4 * (pi * strand_diameter_mm**2 / 4 * number_of_strands_per_core) / pi) ** 0.5) * insulation_percent / 100)) * (1 + 0.12 * (number_of_cores - 1))",
+
+      "calculated_sheath_thickness_mm":
+        "((((4 * (pi * strand_diameter_mm**2 / 4 * number_of_strands_per_core) / pi) ** 0.5) + 2 * (((4 * (pi * strand_diameter_mm**2 / 4 * number_of_strands_per_core) / pi) ** 0.5) * insulation_percent / 100)) * (1 + 0.12 * (number_of_cores - 1))) * sheath_percent / 100",
+
+      "final_overall_diameter_mm":
+        "((((4 * (pi * strand_diameter_mm**2 / 4 * number_of_strands_per_core) / pi) ** 0.5) + 2 * (((4 * (pi * strand_diameter_mm**2 / 4 * number_of_strands_per_core) / pi) ** 0.5) * insulation_percent / 100)) * (1 + 0.12 * (number_of_cores - 1))) + 2 * (((((4 * (pi * strand_diameter_mm**2 / 4 * number_of_strands_per_core) / pi) ** 0.5) + 2 * (((4 * (pi * strand_diameter_mm**2 / 4 * number_of_strands_per_core) / pi) ** 0.5) * insulation_percent / 100)) * (1 + 0.12 * (number_of_cores - 1))) * sheath_percent / 100)"
+    },
+
+    "weights": {
+      "conductor_weight_kg":
+        "(pi * strand_diameter_mm**2 / 4 * number_of_strands_per_core) * number_of_cores * length_meters * copper / 1000000",
+
+      "pvc_weight_kg":
+        "((pi * strand_diameter_mm**2 / 4 * number_of_strands_per_core) * number_of_cores * length_meters * copper / 1000000) * (insulation_percent + bedding_percent + sheath_percent) / 100",
+
+      "weight_per_meter_kg":
+        "(((pi * strand_diameter_mm**2 / 4 * number_of_strands_per_core) * number_of_cores * length_meters * copper / 1000000) + (((pi * strand_diameter_mm**2 / 4 * number_of_strands_per_core) * number_of_cores * length_meters * copper / 1000000) * (insulation_percent + bedding_percent + sheath_percent) / 100)) / length_meters"
+    },
+
+    "pricing": {
+      "cost_per_meter":
+        "(((pi * strand_diameter_mm**2 / 4 * number_of_strands_per_core) * number_of_cores * length_meters * copper / 1000000) * metal_rate_per_kg + (((pi * strand_diameter_mm**2 / 4 * number_of_strands_per_core) * number_of_cores * length_meters * copper / 1000000) * (insulation_percent + bedding_percent + sheath_percent) / 100) * pvc_rate_per_kg) / length_meters",
+
+      "total_cost":
+        "length_meters * ((((pi * strand_diameter_mm**2 / 4 * number_of_strands_per_core) * number_of_cores * length_meters * copper / 1000000) * metal_rate_per_kg + (((pi * strand_diameter_mm**2 / 4 * number_of_strands_per_core) * number_of_cores * length_meters * copper / 1000000) * (insulation_percent + bedding_percent + sheath_percent) / 100) * pvc_rate_per_kg) / length_meters)"
+    },
+
+    "compliance": {
+      "insulation_meets_standard":
+        "'Yes' if (((4 * (pi * strand_diameter_mm**2 / 4 * number_of_strands_per_core) / pi) ** 0.5) * insulation_percent / 100 >= nominal_insulation_ti_mm) else 'No'",
+
+      "sheath_meets_standard":
+        "'Yes' if (((((4 * (pi * strand_diameter_mm**2 / 4 * number_of_strands_per_core) / pi) ** 0.5) + 2 * (((4 * (pi * strand_diameter_mm**2 / 4 * number_of_strands_per_core) / pi) ** 0.5) * insulation_percent / 100)) * (1 + 0.12 * (number_of_cores - 1))) * sheath_percent / 100 >= nominal_sheath_ts_mm) else 'No'",
+
+      "overall_diameter_within_limit":
+        "'Yes' if (((((((4 * (pi * strand_diameter_mm**2 / 4 * number_of_strands_per_core) / pi) ** 0.5) + 2 * (((4 * (pi * strand_diameter_mm**2 / 4 * number_of_strands_per_core) / pi) ** 0.5) * insulation_percent / 100)) * (1 + 0.12 * (number_of_cores - 1))) + 2 * (((((4 * (pi * strand_diameter_mm**2 / 4 * number_of_strands_per_core) / pi) ** 0.5) + 2 * (((4 * (pi * strand_diameter_mm**2 / 4 * number_of_strands_per_core) / pi) ** 0.5) * insulation_percent / 100)) * (1 + 0.12 * (number_of_cores - 1))) * sheath_percent / 100)) <= max_overall_diameter_mm)) else 'No'",
+
+      "is_fully_compliant":
+        "'Yes' if ((((4 * (pi * strand_diameter_mm**2 / 4 * number_of_strands_per_core) / pi) ** 0.5) * insulation_percent / 100 >= nominal_insulation_ti_mm) and (((((4 * (pi * strand_diameter_mm**2 / 4 * number_of_strands_per_core) / pi) ** 0.5) + 2 * (((4 * (pi * strand_diameter_mm**2 / 4 * number_of_strands_per_core) / pi) ** 0.5) * insulation_percent / 100)) * (1 + 0.12 * (number_of_cores - 1))) * sheath_percent / 100 >= nominal_sheath_ts_mm) and ((((((4 * (pi * strand_diameter_mm**2 / 4 * number_of_strands_per_core) / pi) ** 0.5) + 2 * (((4 * (pi * strand_diameter_mm**2 / 4 * number_of_strands_per_core) / pi) ** 0.5) * insulation_percent / 100)) * (1 + 0.12 * (number_of_cores - 1))) + 2 * (((((4 * (pi * strand_diameter_mm**2 / 4 * number_of_strands_per_core) / pi) ** 0.5) + 2 * (((4 * (pi * strand_diameter_mm**2 / 4 * number_of_strands_per_core) / pi) ** 0.5) * insulation_percent / 100)) * (1 + 0.12 * (number_of_cores - 1))) * sheath_percent / 100)) <= max_overall_diameter_mm)) else 'No'"
+    }
+  }
+}

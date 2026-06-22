@@ -1,0 +1,87 @@
+{
+  "constants": {
+    "pi": 3.14159265359,
+    "copper": 8900,
+    "pvc": 1380
+  },
+
+  "wire_type": "HouseWire",
+  "variant": "SingleCore",
+
+  "lookup_standard": {
+    "source_table": "IS 694",
+    "table_ref": "Table 3 / Table 4",
+    "nominal_area_sqmm": "FROM_LOOKUP",
+    "class": "FROM_LOOKUP",
+    "nominal_insulation_ti_mm": "FROM_LOOKUP",
+    "max_overall_diameter_mm": "FROM_LOOKUP"
+  },
+
+  "user_input": {
+    "conductor": {
+      "number_of_strands": "USER_INPUT",
+      "strand_diameter_mm": "USER_INPUT",
+      "material": "copper",
+      "tolerance_percent": "USER_INPUT"
+    },
+
+    "pvc": {
+      "insulation_percent": "USER_INPUT",
+      "inner_layer_percent": "USER_INPUT",
+      "outer_layer_percent": "USER_INPUT"
+    },
+
+    "order": {
+      "length_meters": "USER_INPUT",
+      "copper_rate_per_kg": "USER_INPUT",
+      "pvc_rate_per_kg": "USER_INPUT"
+    }
+  },
+
+  "calculated": {
+    "conductor_area_sqmm":
+      "pi * strand_diameter_mm**2 / 4 * number_of_strands",
+
+    "bare_conductor_diameter_mm":
+      "(4 * (pi * strand_diameter_mm**2 / 4 * number_of_strands) / pi) ** 0.5",
+
+    "total_pvc_percent":
+      "inner_layer_percent + outer_layer_percent + insulation_percent",
+
+    "calculated_insulation_thickness_mm":
+      "((inner_layer_percent + outer_layer_percent + insulation_percent)/100) * ((4 * (pi * strand_diameter_mm**2 / 4 * number_of_strands) / pi) ** 0.5)",
+
+    "estimated_overall_diameter_mm":
+      "((4 * (pi * strand_diameter_mm**2 / 4 * number_of_strands) / pi) ** 0.5) + 2 * (((inner_layer_percent + outer_layer_percent + insulation_percent)/100) * ((4 * (pi * strand_diameter_mm**2 / 4 * number_of_strands) / pi) ** 0.5))",
+
+    "weights": {
+      "conductor_weight_kg":
+        "(pi * strand_diameter_mm**2 / 4 * number_of_strands) * length_meters * copper / 1000000",
+
+      "pvc_weight_kg":
+        "((pi * strand_diameter_mm**2 / 4 * number_of_strands) * length_meters * copper / 1000000) * ((inner_layer_percent + outer_layer_percent + insulation_percent)/100)",
+
+      "weight_per_meter_kg":
+        "(((pi * strand_diameter_mm**2 / 4 * number_of_strands) * length_meters * copper / 1000000) + (((pi * strand_diameter_mm**2 / 4 * number_of_strands) * length_meters * copper / 1000000) * ((inner_layer_percent + outer_layer_percent + insulation_percent)/100))) / length_meters"
+    },
+
+    "pricing": {
+      "cost_per_meter":
+        "(((pi * strand_diameter_mm**2 / 4 * number_of_strands) * length_meters * copper / 1000000) * copper_rate_per_kg + (((pi * strand_diameter_mm**2 / 4 * number_of_strands) * length_meters * copper / 1000000) * ((inner_layer_percent + outer_layer_percent + insulation_percent)/100)) * pvc_rate_per_kg) / length_meters",
+
+      "total_cost":
+        "length_meters * ((((pi * strand_diameter_mm**2 / 4 * number_of_strands) * length_meters * copper / 1000000) * copper_rate_per_kg + (((pi * strand_diameter_mm**2 / 4 * number_of_strands) * length_meters * copper / 1000000) * ((inner_layer_percent + outer_layer_percent + insulation_percent)/100)) * pvc_rate_per_kg) / length_meters)"
+    },
+
+    "compliance": {
+      "meets_IS_insulation_requirement":
+        "'Yes' if (((inner_layer_percent + outer_layer_percent + insulation_percent)/100) * ((4 * (pi * strand_diameter_mm**2 / 4 * number_of_strands) / pi) ** 0.5) >= nominal_insulation_ti_mm) else 'No'",
+
+      "within_max_overall_diameter":
+        "'Yes' if ((((4 * (pi * strand_diameter_mm**2 / 4 * number_of_strands) / pi) ** 0.5) + 2 * (((inner_layer_percent + outer_layer_percent + insulation_percent)/100) * ((4 * (pi * strand_diameter_mm**2 / 4 * number_of_strands) / pi) ** 0.5))) <= max_overall_diameter_mm) else 'No'",
+
+      "is_fully_compliant":
+        "'Yes' if ((((inner_layer_percent + outer_layer_percent + insulation_percent)/100) * ((4 * (pi * strand_diameter_mm**2 / 4 * number_of_strands) / pi) ** 0.5) >= nominal_insulation_ti_mm) and ((((4 * (pi * strand_diameter_mm**2 / 4 * number_of_strands) / pi) ** 0.5) + 2 * (((inner_layer_percent + outer_layer_percent + insulation_percent)/100) * ((4 * (pi * strand_diameter_mm**2 / 4 * number_of_strands) / pi) ** 0.5))) <= max_overall_diameter_mm)) else 'No'"
+    }
+  }
+}
