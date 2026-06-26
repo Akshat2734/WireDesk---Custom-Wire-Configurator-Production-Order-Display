@@ -31,9 +31,9 @@ CARDS = [
 
 
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, api_client=None):
         super().__init__()
-        self.api_client = ApiClient()
+        self.api_client = api_client or ApiClient()
         self.sync_manager = SyncManager(self.api_client)
         self.sync_manager.update_received.connect(self.load_compact_orders)
         self.dashboard_window = DashboardWindow(self.sync_manager)
@@ -53,13 +53,16 @@ class MainWindow(QMainWindow):
         brand.setStyleSheet(f"color:{PRIMARY_COLOR};font-size:20px;font-weight:800;")
         top_layout.addWidget(brand)
         top_layout.addStretch()
-        self.sign_in_btn = QPushButton("Sign In")
+        
+        # Changed "Sign In" button to a "Sign Out" button or remove it entirely
+        self.sign_out_btn = QPushButton("Sign Out")
+        self.sign_out_btn.clicked.connect(self.sign_out)
+        
         dashboard_btn = QPushButton("View Dashboard")
         sync_btn = QPushButton("Sync Network")
-        self.sign_in_btn.clicked.connect(self.open_login)
         dashboard_btn.clicked.connect(self.dashboard_window.show)
         sync_btn.clicked.connect(self.sync_manager.broadcast)
-        for button in (self.sign_in_btn, dashboard_btn, sync_btn):
+        for button in (self.sign_out_btn, dashboard_btn, sync_btn):
             top_layout.addWidget(button)
 
         right_bar = QWidget()
@@ -99,16 +102,12 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(container)
         self.load_compact_orders()
 
-    def open_login(self):
-        if AuthDialog(self.api_client, self).exec():
-            self.sign_in_btn.setText("Signed In")
-            self.sync_manager.connect_to_server()
+    def sign_out(self):
+        self.api_client.token = None
+        self.sync_manager.close()
+        self.close()
 
     def open_overlay(self, json_file, title):
-        if not self.api_client.token:
-            self.open_login()
-        if not self.api_client.token:
-            return
         self.overlay.loadJson(json_file, title)
         self.overlay.show()
         self.overlay.raise_()
@@ -167,6 +166,33 @@ class CompactOrderCard(QFrame):
             self.status_box.blockSignals(True)
             self.status_box.setCurrentText(self.order.get("status", "preprocessing"))
             self.status_box.blockSignals(False)
+            
+    # In MainWindow (app.py)
+
+    def open_login(self):
+        if hasattr(self.api_client, 'token') and self.api_client.token:
+            # Handle Sign Out
+            self.api_client.token = None
+            self.sign_in_btn.setText("Sign In")
+            self.clear_ui_state()
+            self.sync_manager.close()
+        else:
+            # Handle Sign In
+            if AuthDialog(self.api_client, self).exec():
+                self.sign_in_btn.setText("Sign Out")
+                self.sync_manager.connect_to_server()
+                self.load_compact_orders()
+                self.dashboard_window.refresh()
+
+    def clear_ui_state(self):
+        # Purge the live orders list
+        while self.compact_layout.count():
+            item = self.compact_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+        
+        # Purge the dashboard views
+        self.dashboard_window.refresh()
 
 
 if __name__ == "__main__":

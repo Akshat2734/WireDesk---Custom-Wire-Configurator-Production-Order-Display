@@ -8,8 +8,8 @@ services:
     shm_size: 128mb
     environment:
       - POSTGRESQL_REPLICATION_MODE=master
-      - POSTGRESQL_REPLICATION_USER=repl_user
-      - POSTGRESQL_REPLICATION_PASSWORD=supersecret_repl
+      - POSTGRESQL_REPLICATION_USER=${POSTGRESQLREPLICATION_USER}
+      - POSTGRESQL_REPLICATION_PASSWORD=${POSTGRESQLREPLICATION_PASSWORD}
       - POSTGRESQL_USERNAME=${POSTGRES_USER}
       - POSTGRESQL_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRESQL_DATABASE=${POSTGRES_DB}
@@ -32,8 +32,8 @@ services:
     environment:
       - POSTGRESQL_REPLICATION_MODE=slave
       - POSTGRESQL_MASTER_HOST=pg_primary
-      - POSTGRESQL_REPLICATION_USER=repl_user
-      - POSTGRESQL_REPLICATION_PASSWORD=supersecret_repl
+      - POSTGRESQL_REPLICATION_USER=${POSTGRESQLREPLICATION_USER}
+      - POSTGRESQL_REPLICATION_PASSWORD={POSTGRESQLREPLICATION_PASSWORD}
       - POSTGRESQL_MASTER_PORT_NUMBER=5432
       - POSTGRESQL_USERNAME=${POSTGRES_USER}
       - POSTGRESQL_PASSWORD=${POSTGRES_PASSWORD}
@@ -72,7 +72,7 @@ services:
       DB_USER: ${POSTGRES_USER}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       DB_HOST: pg_primary # Bouncer now routes all traffic to the Master
-      AUTH_TYPE: md5
+      AUTH_TYPE: scram-sha-256
       POOL_MODE: transaction
     ports:
       - "6432:5432"
@@ -178,7 +178,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin # Default login
+      - GF_SECURITY_ADMIN_PASSWORD=${ADMIN_PASSWORD}
     depends_on:
       - prometheus
     networks:

@@ -9,11 +9,11 @@ from styles import GLOBAL_STYLE
 
 
 class FactoryDisplayWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, api_client = None):
         super().__init__()
         self.setWindowTitle("Live Production Display")
         self.setMinimumSize(1000, 700)
-        self.api_client = ApiClient()
+        self.api_client = api_client or ApiClient()
         self.sync_manager = SyncManager(self.api_client)
         self.setCentralWidget(OrdersDashboard(self.sync_manager))
 
