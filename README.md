@@ -236,7 +236,7 @@ sequenceDiagram
     participant Main
     participant Replica
 
-    rect rgb(240,240,240)
+    rect rgb(0,0,0)
         Note over Client,Replica: Viewing Orders
 
         Client->>Nginx: GET /view_orders
