@@ -13,5 +13,5 @@ rule_files:
 scrape_configs:
   - job_name: 'flask_api'
     static_configs:
-      # Prometheus uses Docker's internal DNS to scrape both of your API nodes
+      # Prometheus uses Docker's internal DNS to scrape both of API nodes
       - targets: ['api_node_1:5000', 'api_node_2:5000']
