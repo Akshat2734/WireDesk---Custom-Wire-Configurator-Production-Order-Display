@@ -1,4 +1,4 @@
-````md
+
 # WireDesk - Production Order Management System
 
 WireDesk is a full-stack, distributed production management application designed for custom wire manufacturing. It features a PyQt6-based desktop application that interfaces with a highly scalable Flask REST API. The system enforces strict role-based access control, real-time factory floor synchronization via WebSockets, and a robust infrastructure designed to handle high-throughput manufacturing data.
@@ -117,7 +117,7 @@ graph TD
     WebSocket -- Broadcast 'orders_updated' --> AdminUI & ViewUI
 ```
 
-> **Architectural Note:** Notice how the API gateway routes cached GET requests to Redis while real-time updates rely on a transactional outbox pattern to ensure reliable WebSocket delivery.
+**Architectural Note:** Notice how the API gateway routes cached GET requests to Redis while real-time updates rely on a transactional outbox pattern to ensure reliable WebSocket delivery.
 
 ---
 
@@ -218,8 +218,7 @@ graph TD
     Prometheus -.-> PgBouncer
     Grafana -.-> Prometheus
 ```
-
-> **Architectural Note:** PgBouncer pools PostgreSQL connections to prevent connection exhaustion, while Prometheus continuously scrapes metrics for Grafana dashboards.
+**Architectural Note:** PgBouncer pools PostgreSQL connections to prevent connection exhaustion, while Prometheus continuously scrapes metrics for Grafana dashboards.
 
 ---
 
@@ -273,8 +272,8 @@ sequenceDiagram
     end
 ```
 
-> **Architectural Note:** Read-heavy traffic is served from Redis or the PostgreSQL replica, while write operations are committed only to the primary database before cache invalidation.
-````
+**Architectural Note:** Read-heavy traffic is served from Redis or the PostgreSQL replica, while write operations are committed only to the primary database before cache invalidation.
+
 
 
 
