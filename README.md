@@ -257,7 +257,7 @@ sequenceDiagram
         API-->>Client: Orders
     end
 
-    rect rgb(240,240,240)
+    rect rgb(0,0,0)
         Note over Client,Replica: Creating Order
 
         Client->>Nginx: POST /create_order
