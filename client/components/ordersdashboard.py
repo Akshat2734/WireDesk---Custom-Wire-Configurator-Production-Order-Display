@@ -22,14 +22,27 @@ class OrderCard(QFrame):
         self.header = QPushButton(f"Order #{self.order_id}")
         self.header.clicked.connect(self.toggle_expand)
         layout.addWidget(self.header)
+        
+        user_role = getattr(self.sync_manager.api_client, 'role', 'view')
+        current_status = order.get("status", "preprocessing")
 
-        self.status_box = QComboBox()
-        self.status_box.addItems(self.STATUS_OPTIONS)
-        self.status_box.setCurrentText(order.get("status", "preprocessing"))
-        self.status_box.currentTextChanged.connect(self.update_status)
-        self.status_box.currentTextChanged.connect(self.update_status_style)
-        layout.addWidget(self.status_box)
-        self.update_status_style(self.status_box.currentText())
+        if user_role == "admin":
+            self.status_box = QComboBox()
+            self.status_box.addItems(self.STATUS_OPTIONS)
+            self.status_box.setCurrentText(current_status)
+            self.status_box.currentTextChanged.connect(self.update_status)
+            self.status_box.currentTextChanged.connect(self.update_status_style)
+            layout.addWidget(self.status_box)
+            self.update_status_style(current_status)
+        else:
+            self.status_label = QLabel(current_status.upper())
+            color = {"preprocessing": "#f4d35e", "processing": "#17c3b2", "done": "#28c76f"}.get(current_status, "#ffffff")
+            self.status_label.setStyleSheet(
+                f"border: 1px solid {color}; border-radius: 6px; padding: 6px; "
+                f"color: {color}; background-color: #2a3142; font-weight: bold;"
+            )
+            self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            layout.addWidget(self.status_label)
 
         self.details_widget = QWidget()
         columns = QHBoxLayout(self.details_widget)

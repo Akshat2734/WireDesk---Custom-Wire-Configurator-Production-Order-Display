@@ -52,6 +52,7 @@ class ApiClient:
             json={"username": username, "email": email, "password": password},
         )
         self.token = result["access_token"]
+        self.role = result["role"]
         return result
 
     def get_orders(self, status=None):
