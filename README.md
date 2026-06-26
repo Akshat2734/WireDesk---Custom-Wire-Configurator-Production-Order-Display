@@ -236,6 +236,7 @@ sequenceDiagram
     participant Main
     participant Replica
 
+    rect rgb(240,240,240)
         Note over Client,Replica: Viewing Orders
 
         Client->>Nginx: GET /view_orders
@@ -256,6 +257,7 @@ sequenceDiagram
         API-->>Client: Orders
     end
 
+    rect rgb(240,240,240)
         Note over Client,Replica: Creating Order
 
         Client->>Nginx: POST /create_order
