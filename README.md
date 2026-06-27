@@ -77,37 +77,6 @@ DB-->>Client: Orders
 end
 ```
 
-# 🗄️ Entity Relationship
-
-``` mermaid
-erDiagram
-User ||--o{ Orders : creates
-Orders ||--|| Analytics : has
-Orders ||--o{ Outbox : emits
-
-User{
-int id PK
-string username
-string email
-}
-
-Orders{
-string order_id PK
-string status
-float length
-}
-
-Analytics{
-float cost_per_meter
-float pvc_weight
-}
-
-Outbox{
-string event_id
-string status
-}
-```
-
 # 🧱 Deployment Topology
 
 ``` mermaid
