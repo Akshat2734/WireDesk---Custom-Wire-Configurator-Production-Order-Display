@@ -29,19 +29,6 @@ scalable backend.
 
 ------------------------------------------------------------------------
 
-## 🌟 Core Features
-* **AI-Powered ATS Resume Analysis:** Users can upload their resumes in PDF format to receive instant, granular ATS compatibility scores, detailed category breakdowns, and actionable feedback on strengths and weaknesses.
-* **Premium Subscriptions:** Integrated with Razorpay, allowing users to purchase 30-day premium access using secure HMAC SHA-256 signature verification.
-* **Dynamic Skill Graphing:** Employs a many-to-many database relationship handling to allow users to dynamically add, view, and delete professional skills connected to their profiles.
-* **Job Application Engine:** Seamlessly connects job seekers to active listings, tracking application states, mapping resumes, and verifying active subscription tiers during the application process.
-
-## 🚀 Scalability & Backend Features
-* **Microservices Architecture:** The backend is modularized into independently deployable nodes (`auth`, `job`, `payment`, `user`, and `utils`), ensuring isolated failure domains and targeted horizontal scaling.
-* **Event-Driven Messaging:** Utilizes Apache Kafka (hosted via Aiven) to decouple heavy operations. The `send-mail` topic enables non-blocking SMTP email dispatching through background consumer workers.
-* **Serverless Database:** Backed by Neon Database's serverless PostgreSQL infrastructure, providing instant connection pooling and auto-scaling capabilities tailored for stateless environments.
-* **Atomic Database Transactions:** Multi-step insertions (like checking if a user exists, creating a skill, and linking the user to the skill) are wrapped in `BEGIN`, `COMMIT`, and `ROLLBACK` SQL transactions to guarantee data integrity.
-
-
 # 🏗 High-Level Architecture
 
 ``` mermaid
