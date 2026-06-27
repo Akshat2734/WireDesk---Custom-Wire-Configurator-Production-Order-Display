@@ -29,6 +29,42 @@ scalable backend.
 
 ------------------------------------------------------------------------
 
+# 🌟 Core Platform Features
+
+- **Dynamic JSON-Driven Configurator:** The platform uses a dynamic JSON-driven configurator to handle custom wire manufacturing specifications.
+- **Real-time Synchronization:** It provides real-time production monitoring and synchronizes factory floor displays.
+- **Transactional Outbox Pattern:** The system utilizes an outbox pattern architecture for reliable event publishing and message brokering.
+
+---
+
+# 🖥️ Desktop Client (PyQt6)
+- **Role-Based Interfaces:** The desktop application features role-based graphical user interfaces.
+- **Visual Product Grid:** The main dashboard uses a grid-based card layout that allows users to configure various types of products, including House Wire, Multi Core Round Cable, 3 Core Flat Submersible Cable, Service Wire, and Speaker Wire.
+- **Live Order Tracking:** Includes a dedicated side-panel for **Live Orders** that automatically fetches and displays compact order cards showing details like wire type, length in meters, and total cost.
+- **Status Management:** Users can instantly update the status of active orders through a dropdown menu featuring options like **preprocessing**, **processing**, and **done**.
+
+---
+
+# ⚙️ Backend API (Flask) & Architecture
+- **High-Availability Database Strategy:** PostgreSQL is configured with a Primary/Replica setup where writes are routed through PgBouncer to the Primary node, and reads go directly to the Replica node.
+- **Connection Pooling:** Implements PgBouncer to manage database connection pooling and protect the primary database under heavy load.
+- **Caching & Pub/Sub:** Uses Redis for caching responses and handling Pub/Sub messaging across API nodes.
+- **WebSockets:** Socket.IO is integrated into the Flask server to push real-time order updates to all connected clients seamlessly.
+
+---
+
+# 🔒 Security Features
+- **Authentication:** The backend relies on JWT (JSON Web Tokens) to authenticate user requests.
+- **RBAC:** Role-Based Access Control is enforced at the route level via custom decorators (e.g., `@role_required("admin")`).
+
+---
+
+# 📊 DevOps & Monitoring
+- **Docker Orchestration:** The entire platform is containerized and orchestrated via Docker Compose, including load balancing API traffic through an Nginx reverse proxy.
+- **Observability Stack:** Comprehensive monitoring is achieved by integrating Prometheus (for pulling metrics) and Grafana (for visual dashboards).
+- **Alerting:** An Alertmanager container is mapped to the network to handle incoming metric alerts.
+
+
 # 🏗 High-Level Architecture
 
 ``` mermaid
