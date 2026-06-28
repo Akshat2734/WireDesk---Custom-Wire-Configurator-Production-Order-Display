@@ -1,4 +1,4 @@
-# 🔌 WireDesk --- Distributed Production Order Management System
+# 🔌 WireDesk ---Custom-Wire-Configurator-Production-Order-Display
 
 > Enterprise-grade production management platform for custom wire
 > manufacturing featuring **PyQt6**, **Flask**, **PostgreSQL**,
