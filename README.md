@@ -64,6 +64,7 @@ scalable backend.
 - **Observability Stack:** Comprehensive monitoring is achieved by integrating Prometheus (for pulling metrics) and Grafana (for visual dashboards).
 - **Alerting:** An Alertmanager container is mapped to the network to handle incoming metric alerts.
 
+---
 
 # 🏗 High-Level Architecture
 
